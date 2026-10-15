@@ -1,0 +1,2737 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><title>Reviewer Quiz</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  :root { --bg:#fafaf8; --card:#ffffff; --ink:#1c1c1c; --muted:#6f6f6a; --line:#e6e4df;
+          --accent:#1c1c1c; --on-accent:#fafaf8; --ok:#1f8a4c; --okbg:#d9f0e1; --bad:#c53b30; --badbg:#f8dcd8; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg:#141414; --card:#1d1d1d; --ink:#ededed; --muted:#9a9a95; --line:#2e2e2e; --accent:#ededed; --on-accent:#141414; --ok:#4cc27e; --okbg:#16301f; --bad:#ef6b60; --badbg:#3a1a17; color-scheme: dark; }
+  }
+  :root[data-theme="dark"] { --bg:#141414; --card:#1d1d1d; --ink:#ededed; --muted:#9a9a95; --line:#2e2e2e; --accent:#ededed; --on-accent:#141414; --ok:#4cc27e; --okbg:#16301f; --bad:#ef6b60; --badbg:#3a1a17; color-scheme: dark; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); min-height:100vh; font-size:16px;
+         font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; line-height:1.5; }
+  .wrap { max-width:600px; margin:0 auto; padding-block:32px 48px;
+          padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); }
+  .top { display:flex; flex-wrap:wrap; justify-content:space-between; gap:6px 12px; font-size:.85rem; color:var(--muted); margin-bottom:10px; }
+  .track { height:4px; background:var(--line); border-radius:4px; overflow:hidden; margin-bottom:36px; }
+  .fill { height:100%; width:0; background:var(--accent); transition:width .3s ease; }
+  h1 { font-size:1.6rem; font-weight:600; margin:0 0 6px; letter-spacing:-.01em; text-wrap:balance; }
+  h2 { font-size:1.1rem; margin:32px 0 4px; text-wrap:balance; }
+  .sub { color:var(--muted); margin:0 0 24px; }
+  .question { font-size:1.2rem; font-weight:600; margin:0 0 22px; text-wrap:pretty; }
+  .choice { display:flex; gap:12px; align-items:flex-start; width:100%; text-align:left; font:inherit; color:var(--ink);
+            background:var(--card); border:1px solid var(--line); border-radius:10px;
+            padding:14px 16px; margin:0 0 10px; cursor:pointer; transition:border-color .15s, background .15s; }
+  .choice:hover:not(:disabled) { border-color:var(--muted); }
+  .choice:disabled { cursor:default; }
+  .choice small { color:var(--muted); }
+  .choice > span:last-child { min-width:0; overflow-wrap:anywhere; }
+  .key { color:var(--muted); font-size:.85rem; min-width:1.2em; padding-top:1px; }
+  .choice.picked { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
+  .choice.right { background:var(--okbg); border-color:var(--ok); box-shadow:inset 0 0 0 1px var(--ok); }
+  .choice.wrong { background:var(--badbg); border-color:var(--bad); box-shadow:inset 0 0 0 1px var(--bad); }
+  .choice.dim { opacity:.45; }
+  .feedback { min-height:1.5em; margin:18px 0 0; font-weight:600; overflow-wrap:anywhere; }
+  .feedback.ok { color:var(--ok); }
+  .feedback.bad { color:var(--bad); }
+  .src { color:var(--muted); font-size:.85rem; margin-top:2px; font-weight:400; }
+  .btn { font:inherit; padding:11px 22px; border-radius:10px; border:1px solid var(--accent); background:var(--accent); color:var(--on-accent); cursor:pointer; }
+  .btn.ghost { background:transparent; color:var(--ink); border-color:var(--line); }
+  .btn:disabled { opacity:.35; cursor:default; }
+  .row { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:24px; }
+  select { max-width:100%; font:inherit; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--ink); }
+  select.langSel { padding:4px 8px; font-size:.85rem; border-radius:8px; color:var(--muted); }
+  input[type=text] { width:100%; font:inherit; font-size:1.1rem; padding:12px 14px; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--ink); }
+  input[type=text]:focus { outline:none; border-color:var(--accent); }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .bar { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px 16px; margin-bottom:28px; font-size:.85rem; color:var(--muted); }
+  .bar > span { display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; }
+  .link { background:none; border:none; padding:0; font:inherit; color:var(--muted); cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+  .pts { color:var(--ink); font-weight:600; }
+  .tablewrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.95rem; margin-top:8px; }
+  th, td { text-align:left; padding:10px 6px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:500; font-size:.8rem; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  tr.me td { font-weight:700; }
+  .tabs { display:flex; gap:8px; margin:0 0 8px; }
+  .tabs .btn { padding:8px 16px; }
+  .empty { color:var(--muted); padding:16px 0; }
+  .status { color:var(--muted); font-size:.8rem; margin:10px 0 0; }
+  .big { font-size:3rem; font-weight:700; margin:0; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+  .missed { margin-top:12px; border-top:1px solid var(--line); }
+  .missed div { padding:12px 0; border-bottom:1px solid var(--line); font-size:.95rem; }
+  .missed span { display:block; color:var(--ok); font-size:.9rem; }
+  .hidden { display:none; }
+  .hint { color:var(--muted); font-size:.8rem; margin-top:14px; }
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
+</style>
+
+<div class="wrap">
+
+  <!-- 0. NAME -->
+  <section id="nameScreen">
+    <div class="bar"><span></span><span><select class="langSel" aria-label="Language"></select></span></div>
+    <h1>Reviewer</h1>
+    <p class="sub" data-i18n="nameSub"></p>
+    <input type="text" id="nameInput" maxlength="20" autocomplete="off" data-i18n-ph="namePh">
+    <div class="row"><button class="btn" id="nameGo" disabled data-i18n="cont"></button></div>
+  </section>
+
+  <!-- LEADERBOARD -->
+  <section id="board" class="hidden">
+    <h1>Leaderboard</h1>
+    <p class="sub" data-i18n="boardSub"></p>
+    <div class="tabs">
+      <button class="btn" data-tab="FIL2">FIL2</button>
+      <button class="btn ghost" data-tab="GENSCI">GENSCI</button>
+    </div>
+    <div class="tablewrap" id="boardTable"></div>
+    <p class="status" id="statusBoard"></p>
+    <div class="row"><button class="btn ghost back" data-i18n="back"></button></div>
+  </section>
+
+  <!-- 1. SUBJECT -->
+  <section id="start" class="hidden">
+    <div class="bar">
+      <span><span><span data-i18n="hi"></span> <b id="hiName" style="color:var(--ink)"></b></span> <button class="link" id="changeName" data-i18n="change"></button></span>
+      <span><button class="link" id="openBoard" data-i18n="boardLink"></button><button class="link soundToggle"></button><select class="langSel" aria-label="Language"></select></span>
+    </div>
+    <h1>Reviewer</h1>
+    <p class="sub" data-i18n="pickSubject"></p>
+    <button class="choice subject" data-key="FIL2"><span class="key">1</span><span><b>FIL2</b><br><small id="fil2Desc"></small></span></button>
+    <button class="choice subject" data-key="GENSCI"><span class="key">2</span><span><b>GENSCI</b><br><small id="gensciDesc"></small></span></button>
+  </section>
+
+  <!-- 2a. FIL2 SETUP -->
+  <section id="fil2Setup" class="hidden">
+    <h1>FIL2</h1>
+    <p class="sub">Abstrak at Mga Anyo ng Akademikong Sulatin</p>
+    <div class="row">
+      <select id="countFil2" class="countSel"></select>
+      <button class="btn" id="beginFil2" data-i18n="start"></button>
+      <button class="btn ghost back" data-i18n="back"></button>
+    </div>
+  </section>
+
+  <!-- 2b. GENSCI LESSON BRANCH -->
+  <section id="gensciSetup" class="hidden">
+    <h1>GENSCI</h1>
+    <p class="sub" data-i18n="pickLesson"></p>
+    <div id="lessonList"></div>
+    <div class="row">
+      <select id="countGensci" class="countSel"></select>
+      <button class="btn" id="beginGensci" disabled data-i18n="start"></button>
+      <button class="btn ghost back" data-i18n="back"></button>
+    </div>
+  </section>
+
+  <!-- 3. QUIZ -->
+  <section id="quiz" class="hidden">
+    <div class="top"><span><b id="subj"></b> · <span id="pos"></span></span><span><span class="pts" id="points"></span> · <span id="tally"></span> · <button class="link soundToggle"></button></span></div>
+    <div class="track"><div class="fill" id="fill"></div></div>
+    <p class="question" id="qtext"></p>
+    <div id="choices"></div>
+    <div class="feedback" id="fb"></div>
+    <div class="row"><button class="btn hidden" id="next"></button></div>
+    <p class="hint" data-i18n="hint"></p>
+  </section>
+
+  <!-- 4. RESULT -->
+  <section id="result" class="hidden">
+    <p class="sub" style="margin:0" id="scoreLabel"></p>
+    <p class="big" id="final"></p>
+    <p class="sub" id="msg"></p>
+    <p class="sub" id="ptsLine" style="margin-top:-16px"></p>
+    <div class="row">
+      <button class="btn" id="again" data-i18n="again"></button>
+      <button class="btn ghost" id="retryWrong" data-i18n="retry"></button>
+      <button class="btn ghost" id="home" data-i18n="changeSubj"></button>
+    </div>
+    <h2 id="lbTitle"></h2>
+    <div class="tablewrap" id="resultBoard"></div>
+    <p class="status" id="statusResult"></p>
+    <h2 id="missedTitle" data-i18n="missedTitle"></h2>
+    <div class="missed" id="missed"></div>
+  </section>
+
+</div>
+
+<script>
+const BANKS = { FIL2: [
+ {
+  "q": "Alin ang HINDI layunin ng talumpati ayon sa aralin?",
+  "a": "Itala ang mga napagkasunduan sa pulong",
+  "wrong": [
+   "Humikayat at tumugon",
+   "Mangatwiran",
+   "Magbigay ng kaalaman at maglahad ng paniniwala"
+  ],
+  "src": "5. Talumpati"
+ },
+ {
+  "q": "Paglalahad ng anumang kaisipan at natutunang impormasyon mula sa tekstong binasa sa pagkakasunod-sunod na pangyayari.",
+  "a": "Sintesis",
+  "wrong": [
+   "Abstrak",
+   "Lakbay Sanaysay",
+   "Katitikan ng Pulong"
+  ],
+  "src": "2. Sintesis"
+ },
+ {
+  "q": "Ano ang kinakailangan upang makabuo ng mahusay na abstrak?",
+  "a": "Maingat na pag-extract o pagkuha ng mahahalagang impormasyon sa teksto",
+  "wrong": [
+   "Pagdaragdag ng sariling opinyon sa bawat talata",
+   "Pagkopya ng buong introduksyon",
+   "Paglalagay ng mga larawan at tsart"
+  ],
+  "src": "Ang Abstrak"
+ },
+ {
+  "q": "Mula sa anong salitang Latin nagmula ang salitang \"abstrak\"?",
+  "a": "abstractus",
+  "wrong": [
+   "abstractio",
+   "extractus",
+   "abstrare"
+  ],
+  "src": "Ang Abstrak"
+ },
+ {
+  "q": "Anong uri ng abstrak ang detalyado at malinaw ang impormasyon, at halos lahat ng elemento ng abstrak ay napapaloob dito?",
+  "a": "Impormatibong Abstrak",
+  "wrong": [
+   "Deskriptibong Abstrak",
+   "Kritikal na Abstrak",
+   "Sintesis"
+  ],
+  "src": "1. Impormatibong Abstrak"
+ },
+ {
+  "q": "Paano inilalarawan ng lakbay sanaysay ang lugar na pinuntahan?",
+  "a": "Sa pamamagitan ng nakita, narinig, naamoy, nalasahan at naramdaman",
+  "wrong": [
+   "Sa pamamagitan ng estadistika at datos",
+   "Sa pamamagitan ng opinyon ng partido pulitikal",
+   "Sa pamamagitan ng plano ng proyekto"
+  ],
+  "src": "11. Lakbay Sanaysay"
+ },
+ {
+  "q": "Saan kadalasang makikita ang abstrak sa isang akademikong sulatin?",
+  "a": "Sa panimula o introduksyon ng pag-aaral",
+  "wrong": [
+   "Sa pinakahuling kabanata o konklusyon",
+   "Sa likod ng pabalat ng libro",
+   "Sa bahagi ng apendiks"
+  ],
+  "src": "Ang Abstrak"
+ },
+ {
+  "q": "Ang replektibong sanaysay ay nakatuon sa ___.",
+  "a": "espisipikong paksa at sariling karanasan ng tao",
+  "wrong": [
+   "detalyadong plano ng proyekto",
+   "kuro-kuro ng partido pulitikal",
+   "mga gawain bago ang pulong"
+  ],
+  "src": "8. Replektibong Sanaysay"
+ },
+ {
+  "q": "Uri ng artikulong nagtataglay ng mga larawang nagsasalaysay ng pangyayari, damdamin, at konsepto.",
+  "a": "Photo Essay",
+  "wrong": [
+   "Lakbay Sanaysay",
+   "Replektibong Sanaysay",
+   "Bionote"
+  ],
+  "src": "10. Photo Essay"
+ },
+ {
+  "q": "Ayon sa aralin, bakit kailangang lumayo ng manlalakbay?",
+  "a": "Upang lubos na makilala ang pinanggalingan",
+  "wrong": [
+   "Upang makakuha ng maraming litrato",
+   "Upang makasulat ng posisyong papel",
+   "Upang makaiwas sa pulong"
+  ],
+  "src": "11. Lakbay Sanaysay"
+ },
+ {
+  "q": "Inilalarawan dito ang mga nakita, narinig, naamoy, nalasahan, at naramdaman sa lugar na pinuntahan.",
+  "a": "Lakbay Sanaysay",
+  "wrong": [
+   "Photo Essay",
+   "Replektibong Sanaysay",
+   "Sintesis"
+  ],
+  "src": "11. Lakbay Sanaysay"
+ },
+ {
+  "q": "Ang replektibong sanaysay ay nakasailalim sa anong anyo?",
+  "a": "Tuluyan o prosa",
+  "wrong": [
+   "Patula o berso",
+   "Dula",
+   "Talahanayan"
+  ],
+  "src": "8. Replektibong Sanaysay"
+ },
+ {
+  "q": "Plano o mga gawain na kailangang mangyari bago, habang, at pagkatapos ng isang pulong.",
+  "a": "Adyenda",
+  "wrong": [
+   "Katitikan ng Pulong",
+   "Panukalang Papel",
+   "Talumpati"
+  ],
+  "src": "6. Adyenda"
+ },
+ {
+  "q": "Ilang salita lamang ang karaniwang bumubuo sa deskriptibong abstrak?",
+  "a": "Isang daan o kulang sa isang daan",
+  "wrong": [
+   "Dalawang daan hanggang tatlong daan",
+   "Limampu lamang",
+   "Isang libo o higit pa"
+  ],
+  "src": "2. Deskriptibong Abstrak"
+ },
+ {
+  "q": "Alin sa mga ito ang karaniwang may abstrak?",
+  "a": "Papel na siyentipiko",
+  "wrong": [
+   "Adyenda",
+   "Talumpati",
+   "Photo essay"
+  ],
+  "src": "1. Abstrak (Mga Anyo)"
+ },
+ {
+  "q": "Ano ang dapat na katangian ng isang sintesis?",
+  "a": "Malinaw sa pagpapahayag",
+  "wrong": [
+   "Mahaba at detalyado",
+   "Puno ng sariling opinyon",
+   "May kasamang mga larawan"
+  ],
+  "src": "2. Sintesis"
+ },
+ {
+  "q": "Para kanino isinasagawa ang talumpati?",
+  "a": "Para sa mga pangkat ng tao",
+  "wrong": [
+   "Para sa sarili lamang",
+   "Para sa awtor ng libro",
+   "Para sa mga kalahok ng pulong lamang"
+  ],
+  "src": "5. Talumpati"
+ },
+ {
+  "q": "Uri ng sulatin na nasa anyong tuluyan o prosa, na naguugnay sa isang espisipikong paksa at sariling karanasan ng tao.",
+  "a": "Replektibong Sanaysay",
+  "wrong": [
+   "Lakbay Sanaysay",
+   "Photo Essay",
+   "Bionote"
+  ],
+  "src": "8. Replektibong Sanaysay"
+ },
+ {
+  "q": "Ang kritikal na abstrak ay naglalaman ng ___.",
+  "a": "kritikal na pagtingin at pagsusuri",
+  "wrong": [
+   "pinaikling talambuhay ng awtor",
+   "detalyadong plano ng proyekto",
+   "mga larawang nagsasalaysay"
+  ],
+  "src": "3. Kritikal na Abstrak"
+ },
+ {
+  "q": "Ano ang pangunahing laman ng posisyong papel?",
+  "a": "Kuro-kuro hinggil sa isang paksa",
+  "wrong": [
+   "Pinaikling talambuhay",
+   "Mga larawan ng paglalakbay",
+   "Plano ng mga gawain sa pulong"
+  ],
+  "src": "9. Posisyong Papel"
+ },
+ {
+  "q": "Sa photo essay, ano ang pangunahing nagsasalaysay ng pangyayari, damdamin at konsepto?",
+  "a": "Mga larawan",
+  "wrong": [
+   "Mga talahanayan",
+   "Mga talumpati",
+   "Mga katitikan"
+  ],
+  "src": "10. Photo Essay"
+ },
+ {
+  "q": "Saan madalas makita ang bionote?",
+  "a": "Sa likod ng mga libro o akda kung saan ipinapakilala ang awtor",
+  "wrong": [
+   "Sa simula ng bawat kabanata ng tesis",
+   "Sa adyenda ng isang pulong",
+   "Sa mga travel magazine"
+  ],
+  "src": "3. Bionote"
+ },
+ {
+  "q": "Ano ang pagkakaiba ng adyenda at katitikan ng pulong?",
+  "a": "Ang adyenda ay plano ng gawain; ang katitikan ay dokumento ng napag-usapan at napagkasunduan",
+  "wrong": [
+   "Ang adyenda ay dokumento ng napagkasunduan; ang katitikan ay plano",
+   "Pareho silang talambuhay ng mga kasapi",
+   "Walang pagkakaiba ang dalawa"
+  ],
+  "src": "7. Katitikan ng Pulong"
+ },
+ {
+  "q": "Buod ng kaisipan o opinyon ng isang tao na pinababatid sa pamamagitan ng pagsasalita sa entablado para sa mga pangkat ng tao.",
+  "a": "Talumpati",
+  "wrong": [
+   "Posisyong Papel",
+   "Bionote",
+   "Replektibong Sanaysay"
+  ],
+  "src": "5. Talumpati"
+ },
+ {
+  "q": "Alin ang HINDI kabilang sa nilalaman ng abstrak ayon sa aralin?",
+  "a": "Talambuhay ng awtor",
+  "wrong": [
+   "Kaligiran ng pag-aaral at saklaw",
+   "Pamamaraang ginamit",
+   "Resulta at kongklusyon"
+  ],
+  "src": "Ang Abstrak"
+ },
+ {
+  "q": "Ano ang isa pang tawag sa sintesis?",
+  "a": "Buod",
+  "wrong": [
+   "Talambuhay",
+   "Adyenda",
+   "Prosa"
+  ],
+  "src": "2. Sintesis"
+ },
+ {
+  "q": "Bakit tinatawag na \"pinaikli\" ang bionote?",
+  "a": "Dahil naglalaman lamang ito ng mga impormasyong totoo at direkta",
+  "wrong": [
+   "Dahil isang pangungusap lamang ito",
+   "Dahil walang pangalan ng awtor",
+   "Dahil larawan lamang ang laman nito"
+  ],
+  "src": "3. Bionote"
+ },
+ {
+  "q": "Ang sintesis ay naglalaman ng pinakamahalagang kaisipan ng ___.",
+  "a": "anumang teksto",
+  "wrong": [
+   "isang pulong lamang",
+   "talambuhay ng awtor",
+   "isang larawan"
+  ],
+  "src": "2. Sintesis"
+ },
+ {
+  "q": "Sa anong uri ng abstrak WALANG konkretong buod o resulta ng sulatin ang mababasa?",
+  "a": "Deskriptibong Abstrak",
+  "wrong": [
+   "Impormatibong Abstrak",
+   "Kritikal na Abstrak",
+   "Lahat ng uri"
+  ],
+  "src": "2. Deskriptibong Abstrak"
+ },
+ {
+  "q": "Alin ang HINDI isa sa tatlong uri ng abstrak?",
+  "a": "Replektibong Abstrak",
+  "wrong": [
+   "Impormatibong Abstrak",
+   "Deskriptibong Abstrak",
+   "Kritikal na Abstrak"
+  ],
+  "src": "Mga Uri at Nilalaman ng Abstrak"
+ },
+ {
+  "q": "Maikling talata na naglalaman ng pinaikling talambuhay.",
+  "a": "Bionote",
+  "wrong": [
+   "Abstrak",
+   "Replektibong Sanaysay",
+   "Talumpati"
+  ],
+  "src": "3. Bionote"
+ },
+ {
+  "q": "Sulatin na nagtataglay ng detalyadong plano para sa pagbuo at pagsasagawa ng isang proyekto.",
+  "a": "Panukalang Papel",
+  "wrong": [
+   "Posisyong Papel",
+   "Adyenda",
+   "Sintesis"
+  ],
+  "src": "4. Panukalang Papel"
+ },
+ {
+  "q": "Sa pamamagitan ng abstrak, malalaman na ng mambabasa ang ___.",
+  "a": "kabuoang nilalaman ng teksto",
+  "wrong": [
+   "opinyon ng may-akda lamang",
+   "listahan ng mga sanggunian",
+   "talambuhay ng mananaliksik"
+  ],
+  "src": "Ang Abstrak"
+ },
+ {
+  "q": "Ang deskriptibong abstrak ay maihahalintulad sa ___.",
+  "a": "isang plano na dapat sundan ng isang manunulat",
+  "wrong": [
+   "isang talumpati sa entablado",
+   "isang talambuhay ng awtor",
+   "isang katitikan ng pulong"
+  ],
+  "src": "2. Deskriptibong Abstrak"
+ },
+ {
+  "q": "Ang abstrak ay ang pinakabuod ng buong akdang akademiko o ulat, kaugnay ng ___.",
+  "a": "literatura, metodolohiya, resulta at konklusyon",
+  "wrong": [
+   "talambuhay, larawan at karanasan",
+   "adyenda, katitikan at pulong",
+   "opinyon, paniniwala at damdamin"
+  ],
+  "src": "1. Abstrak (Mga Anyo)"
+ },
+ {
+  "q": "Ang talumpati ay pinababatid sa pamamagitan ng ___.",
+  "a": "pagsasalita sa entablado",
+  "wrong": [
+   "pagsulat sa likod ng libro",
+   "pagkuha ng mga larawan",
+   "pagtatala ng katitikan"
+  ],
+  "src": "5. Talumpati"
+ },
+ {
+  "q": "Organisadong idinudukomentong papel ng mga napag-usapan at napagkasunduan ng mga naging bahagi ng isang pulong.",
+  "a": "Katitikan ng Pulong",
+  "wrong": [
+   "Adyenda",
+   "Posisyong Papel",
+   "Abstrak"
+  ],
+  "src": "7. Katitikan ng Pulong"
+ },
+ {
+  "q": "Uri ng lagom na karaniwang ginagamit sa tesis, papel na siyentipiko, teknikal lektyur, at mga report.",
+  "a": "Abstrak",
+  "wrong": [
+   "Sintesis",
+   "Bionote",
+   "Adyenda"
+  ],
+  "src": "1. Abstrak (Mga Anyo)"
+ },
+ {
+  "q": "Ito ang pinakamaraming uri ng abstrak na sulatin at kapaki-pakinabang para sa mga magbabasa nito.",
+  "a": "Impormatibong Abstrak",
+  "wrong": [
+   "Deskriptibong Abstrak",
+   "Kritikal na Abstrak",
+   "Bionote"
+  ],
+  "src": "1. Impormatibong Abstrak"
+ },
+ {
+  "q": "Anong uri ng abstrak ang maikli lamang at binubuo ng isang daan o kulang sa isang daang salita?",
+  "a": "Deskriptibong Abstrak",
+  "wrong": [
+   "Impormatibong Abstrak",
+   "Kritikal na Abstrak",
+   "Panukalang Papel"
+  ],
+  "src": "2. Deskriptibong Abstrak"
+ },
+ {
+  "q": "Ilan ang pangunahing uri ng abstrak na tinalakay sa aralin?",
+  "a": "Tatlo (impormatibo, deskriptibo, kritikal)",
+  "wrong": [
+   "Dalawa (impormatibo at deskriptibo)",
+   "Apat (impormatibo, deskriptibo, kritikal, replektibo)",
+   "Isa lamang"
+  ],
+  "src": "Mga Uri at Nilalaman ng Abstrak"
+ },
+ {
+  "q": "Ang posisyong papel ay maaaring isulat ng nakatukoy na entidad gaya ng ___.",
+  "a": "isang partido pulitikal",
+  "wrong": [
+   "isang manlalakbay",
+   "isang litratista",
+   "isang tauhan sa kuwento"
+  ],
+  "src": "9. Posisyong Papel"
+ },
+ {
+  "q": "Ang adyenda ay naglalaman ng mga gawain ___ ng isang pulong.",
+  "a": "bago, habang, at pagkatapos",
+  "wrong": [
+   "bago lamang",
+   "pagkatapos lamang",
+   "habang lamang"
+  ],
+  "src": "6. Adyenda"
+ },
+ {
+  "q": "Anong anyo ng sulatin ang sasagot sa tanong na \"Paano bubuuin at isasagawa ang proyekto?\"",
+  "a": "Panukalang Papel",
+  "wrong": [
+   "Bionote",
+   "Photo Essay",
+   "Sintesis"
+  ],
+  "src": "4. Panukalang Papel"
+ },
+ {
+  "q": "Sa makabagong pag-aaral, ginagamit ang abstrak bilang ___ ng mga akademikong sulatin.",
+  "a": "buod",
+  "wrong": [
+   "pamagat",
+   "talambuhay",
+   "sanggunian"
+  ],
+  "src": "Ang Abstrak"
+ },
+ {
+  "q": "Sa paglalakbay, hindi maiiwan ang paghahambing sa ___.",
+  "a": "lugar na pinanggalingan at pupuntahan",
+  "wrong": [
+   "opinyon ng iba't ibang manunulat",
+   "resulta at konklusyon ng pag-aaral",
+   "mga napagkasunduan sa pulong"
+  ],
+  "src": "11. Lakbay Sanaysay"
+ },
+ {
+  "q": "Saan nilalathala ang mga posisyong papel?",
+  "a": "Sa akademya, pulitika, batas at iba pang dominyo",
+  "wrong": [
+   "Sa likod lamang ng mga libro",
+   "Sa travel magazine lamang",
+   "Sa adyenda ng pulong lamang"
+  ],
+  "src": "9. Posisyong Papel"
+ },
+ {
+  "q": "Ano ang kahulugan ng salitang Latin na \"abstractus\"?",
+  "a": "drawn away o extract from",
+  "wrong": [
+   "write together o pagsasama",
+   "short life story",
+   "plan of action"
+  ],
+  "src": "Ang Abstrak"
+ },
+ {
+  "q": "Anong uri ng abstrak ang maikling pagsusuri o pagtalakay ng akda, artikulo, o pananaliksik na may kritikal na pagtingin at pagsusuri?",
+  "a": "Kritikal na Abstrak",
+  "wrong": [
+   "Impormatibong Abstrak",
+   "Deskriptibong Abstrak",
+   "Posisyong Papel"
+  ],
+  "src": "3. Kritikal na Abstrak"
+ },
+ {
+  "q": "Ilang anyo ng akademikong sulatin ang tinalakay sa aralin?",
+  "a": "Labing-isa (11)",
+  "wrong": [
+   "Tatlo (3)",
+   "Pito (7)",
+   "Siyam (9)"
+  ],
+  "src": "Mga Anyo ng Akademikong Sulatin"
+ },
+ {
+  "q": "Salaysay na naglalahad ng kuro-kuro hinggil sa isang paksa, karaniwang isinulat ng may-akda o ng nakatukoy na entidad gaya ng partido pulitikal.",
+  "a": "Posisyong Papel",
+  "wrong": [
+   "Panukalang Papel",
+   "Talumpati",
+   "Replektibong Sanaysay"
+  ],
+  "src": "9. Posisyong Papel"
+ }
+], GENSCI: [
+ {
+  "q": "In the carbon cycle, carbon is:",
+  "a": "Recycled, not destroyed",
+  "wrong": [
+   "Destroyed after use",
+   "Created by animals",
+   "Only found in the air"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "Where does photosynthesis mainly occur?",
+  "a": "Chloroplasts",
+  "wrong": [
+   "Mitochondria",
+   "Nucleus",
+   "Ribosomes"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "Air is the common example of which type of solution?",
+  "a": "Gas in gas",
+  "wrong": [
+   "Gas in liquid",
+   "Liquid in liquid",
+   "Solid in solid"
+  ],
+  "src": "Introduction to Solutions"
+ },
+ {
+  "q": "A chemical that can cause serious damage to living tissue or certain materials is labeled as:",
+  "a": "Corrosive",
+  "wrong": [
+   "Oxidizing",
+   "Compressed gas",
+   "Flammable"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "A solution is a homogeneous mixture formed when:",
+  "a": "One substance dissolves completely in another",
+  "wrong": [
+   "Particles settle at the bottom",
+   "Two substances do not mix",
+   "A solid is filtered out"
+  ],
+  "src": "Introduction to Solutions"
+ },
+ {
+  "q": "Which agency handles food research and fortification?",
+  "a": "Department of Science and Technology (DOST)",
+  "wrong": [
+   "DOH",
+   "DPWH",
+   "DOLE"
+  ],
+  "src": "Metabolism"
+ },
+ {
+  "q": "Zn + CuSO₄ → ZnSO₄ + Cu is an example of:",
+  "a": "Single replacement",
+  "wrong": [
+   "Double replacement",
+   "Synthesis",
+   "Decomposition"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "What is a chemical hazard?",
+  "a": "A property of a chemical that can potentially cause harm to people, property, or the environment",
+  "wrong": [
+   "Any chemical sold in a store",
+   "The chance that a chemical will be spilled",
+   "A chemical that is always safe at home"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "Instant cold packs, hand warmers and compost piles are examples of which clue of a chemical reaction?",
+  "a": "Temperature change without external heating",
+  "wrong": [
+   "Change in odor",
+   "Formation of a precipitate",
+   "Color change"
+  ],
+  "src": "Intro to Chemical Reactions"
+ },
+ {
+  "q": "Which is an example of catabolism?",
+  "a": "The liver breaking down stored glycogen during an overnight fast",
+  "wrong": [
+   "Amino acids combining to form proteins",
+   "A child's bones growing",
+   "Plants making glucose by photosynthesis"
+  ],
+  "src": "Metabolism"
+ },
+ {
+  "q": "What is a chemical reaction?",
+  "a": "A process in which one or more substances are transformed into new substances with different properties",
+  "wrong": [
+   "A change in shape, size or state only",
+   "Mixing substances that keep their own properties",
+   "Any change that can be easily reversed"
+  ],
+  "src": "Intro to Chemical Reactions"
+ },
+ {
+  "q": "A reaction where the positive and negative ions of two ionic compounds exchange places (AB + CD → AD + CB) is:",
+  "a": "Double replacement",
+  "wrong": [
+   "Single replacement",
+   "Synthesis",
+   "Combustion"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "In a chemical equation, the arrow (→) means:",
+  "a": "Produces or yields",
+  "wrong": [
+   "Is equal to",
+   "Is added to",
+   "Is subtracted from"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "Why is bread soft and fluffy?",
+  "a": "Carbon dioxide gas released by yeast gets trapped in the dough",
+  "wrong": [
+   "Oxygen from the oven enters the dough",
+   "Water in the dough turns into ice",
+   "Salt dissolves and expands"
+  ],
+  "src": "Intro to Chemical Reactions"
+ },
+ {
+  "q": "Why is burning charcoal inside a closed room dangerous?",
+  "a": "Incomplete combustion produces carbon monoxide, which can cause poisoning",
+  "wrong": [
+   "It produces too much oxygen",
+   "It turns the charcoal into water",
+   "It makes the room too cold"
+  ],
+  "src": "Combustion Reaction"
+ },
+ {
+  "q": "An endothermic process:",
+  "a": "Absorbs heat energy from its surroundings",
+  "wrong": [
+   "Releases heat and light",
+   "Has no energy change",
+   "Only happens in animals"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "Products that may explode by flame, heat, or friction carry which pictogram?",
+  "a": "Explosive",
+  "wrong": [
+   "Flammable",
+   "Oxidizing",
+   "Compressed gas"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "Why do most decomposition reactions need heat, electricity, or light?",
+  "a": "Energy is needed to break the chemical bonds in the compound",
+  "wrong": [
+   "To create new atoms",
+   "To make the products cooler",
+   "To combine two elements"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "Under the GHS, what do hazard pictograms look like?",
+  "a": "A black symbol on a white background inside a red diamond-shaped frame",
+  "wrong": [
+   "A white symbol on a black circle",
+   "A red symbol inside a yellow triangle",
+   "A green symbol inside a blue square"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "The substance that does the dissolving (usually in the largest amount) is the:",
+  "a": "Solvent",
+  "wrong": [
+   "Solute",
+   "Colloid",
+   "Suspension"
+  ],
+  "src": "Introduction to Solutions"
+ },
+ {
+  "q": "Metals are generally:",
+  "a": "Hard, shiny, and good conductors of heat and electricity",
+  "wrong": [
+   "Soft, dull and poor conductors",
+   "Always liquids",
+   "Sour-tasting"
+  ],
+  "src": "Acid-Metal and Acid-Carbonate Reactions"
+ },
+ {
+  "q": "Which is TRUE about photosynthesis compared to respiration?",
+  "a": "Photosynthesis stores energy and uses CO₂; respiration releases energy and releases CO₂",
+  "wrong": [
+   "Photosynthesis releases energy; respiration stores it",
+   "Both require sunlight",
+   "Respiration occurs in chloroplasts"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "Salt concentration refers to:",
+  "a": "The amount of dissolved salt in a given amount of solution",
+  "wrong": [
+   "The color of the water",
+   "The temperature of seawater",
+   "The number of fish in a lake"
+  ],
+  "src": "Saltwater and Wastewater Effects"
+ },
+ {
+  "q": "Which is a correct precaution for a corrosive toilet bleach?",
+  "a": "Do not mix it with other cleaning chemicals and use it in a well-ventilated area",
+  "wrong": [
+   "Mix it with other cleaners to make it stronger",
+   "Smell it to check if it still works",
+   "Use it in a closed room"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "Metabolism is often compared to the body's:",
+  "a": "Engine",
+  "wrong": [
+   "Garbage bin",
+   "Storage box",
+   "Mirror"
+  ],
+  "src": "Metabolism"
+ },
+ {
+  "q": "Calcium oxide (quicklime) from limestone decomposition is widely used in:",
+  "a": "Cement production and construction",
+  "wrong": [
+   "Photographic film",
+   "Antiseptics",
+   "Hydrogen fuel"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "Which is NOT a sign of a decomposition reaction?",
+  "a": "Two substances combine into one product",
+  "wrong": [
+   "Production of gas",
+   "Formation of a solid residue",
+   "Change in temperature"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "In a chemical equation, the starting substances on the LEFT side are called:",
+  "a": "Reactants",
+  "wrong": [
+   "Products",
+   "Coefficients",
+   "Catalysts"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "About how much of air is oxygen?",
+  "a": "21%",
+  "wrong": [
+   "50%",
+   "78%",
+   "5%"
+  ],
+  "src": "Combustion Reaction"
+ },
+ {
+  "q": "Which of these are observable signs of combustion?",
+  "a": "Flame, heat, light, smoke and ash",
+  "wrong": [
+   "Freezing and condensation",
+   "Rusting and tarnishing",
+   "Melting and dissolving"
+  ],
+  "src": "Combustion Reaction"
+ },
+ {
+  "q": "Which is an example of a carbonate?",
+  "a": "Eggshells",
+  "wrong": [
+   "Copper wire",
+   "Vinegar",
+   "Table sugar"
+  ],
+  "src": "Acid-Metal and Acid-Carbonate Reactions"
+ },
+ {
+  "q": "In a salt experiment, the setup with no added salt is the:",
+  "a": "Control condition",
+  "wrong": [
+   "Highest concentration",
+   "Saltwater intrusion",
+   "Wastewater sample"
+  ],
+  "src": "Saltwater and Wastewater Effects"
+ },
+ {
+  "q": "A carbonate ion is made up of:",
+  "a": "One carbon atom and three oxygen atoms",
+  "wrong": [
+   "Two carbon atoms and one oxygen atom",
+   "One hydrogen and one chlorine",
+   "One carbon and two hydrogen atoms"
+  ],
+  "src": "Acid-Metal and Acid-Carbonate Reactions"
+ },
+ {
+  "q": "A new solid formed when two liquids react is called a:",
+  "a": "Precipitate",
+  "wrong": [
+   "Solvent",
+   "Colloid",
+   "Catalyst"
+  ],
+  "src": "Intro to Chemical Reactions"
+ },
+ {
+  "q": "Numbers placed before chemical formulas to balance an equation are called:",
+  "a": "Coefficients",
+  "wrong": [
+   "Subscripts",
+   "Reactants",
+   "Products"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "How does deforestation disrupt the carbon balance?",
+  "a": "Fewer trees absorb CO₂, and burning cleared forests releases more CO₂",
+  "wrong": [
+   "It increases oxygen in the air",
+   "It removes CO₂ from the air faster",
+   "It has no effect on carbon"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "A pesticide shows a skull-and-crossbones pictogram. What is the most appropriate conclusion?",
+  "a": "It should be treated as potentially toxic",
+  "wrong": [
+   "It should be smelled before use",
+   "It is safe because it is sold commercially",
+   "It has the same hazard as every household cleaner"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "Which is a property of acids?",
+  "a": "Sour taste, turns blue litmus red, pH lower than 7",
+  "wrong": [
+   "Bitter taste, turns red litmus blue, pH higher than 7",
+   "No taste, pH exactly 7",
+   "Slippery feel, pH higher than 7"
+  ],
+  "src": "Acid-Metal and Acid-Carbonate Reactions"
+ },
+ {
+  "q": "CH₄ + 2O₂ → CO₂ + 2H₂O + Energy shows:",
+  "a": "Complete combustion of methane",
+  "wrong": [
+   "Incomplete combustion of methane",
+   "Decomposition of water",
+   "Photosynthesis"
+  ],
+  "src": "Combustion Reaction"
+ },
+ {
+  "q": "Plants take in carbon dioxide through tiny openings in the leaves called:",
+  "a": "Stomata",
+  "wrong": [
+   "Roots",
+   "Chloroplasts",
+   "Mitochondria"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "Which acid is found in soft drinks?",
+  "a": "Carbonic acid",
+  "wrong": [
+   "Hydrochloric acid",
+   "Sulfuric acid",
+   "Acetic acid"
+  ],
+  "src": "Acid-Metal and Acid-Carbonate Reactions"
+ },
+ {
+  "q": "Which agency runs nutrition programs and health campaigns?",
+  "a": "Department of Health (DOH)",
+  "wrong": [
+   "DOST",
+   "DepEd",
+   "DENR"
+  ],
+  "src": "Metabolism"
+ },
+ {
+  "q": "Which situation is a PHYSICAL change?",
+  "a": "Ice cubes melting inside a glass",
+  "wrong": [
+   "A nail becoming rusty",
+   "Milk turning sour overnight",
+   "Cake batter becoming a baked cake"
+  ],
+  "src": "Intro to Chemical Reactions"
+ },
+ {
+  "q": "During a high-intensity workout, muscle cells breaking down glucose and glycogen is:",
+  "a": "Catabolism",
+  "wrong": [
+   "Anabolism",
+   "Photosynthesis",
+   "Synthesis"
+  ],
+  "src": "Metabolism"
+ },
+ {
+  "q": "Why does spoiled milk smell different from fresh milk?",
+  "a": "New substances have formed through a chemical reaction",
+  "wrong": [
+   "The milk became colder",
+   "The milk changed state from liquid to solid",
+   "Air simply entered the bottle"
+  ],
+  "src": "Intro to Chemical Reactions"
+ },
+ {
+  "q": "In 2HCl + Mg → MgCl₂ + H₂, which gas is produced?",
+  "a": "Hydrogen gas",
+  "wrong": [
+   "Carbon dioxide",
+   "Oxygen",
+   "Chlorine gas"
+  ],
+  "src": "Acid-Metal and Acid-Carbonate Reactions"
+ },
+ {
+  "q": "Which is a source of heat that can start combustion?",
+  "a": "An electrical spark",
+  "wrong": [
+   "A glass of water",
+   "A bag of sand",
+   "A block of ice"
+  ],
+  "src": "Combustion Reaction"
+ },
+ {
+  "q": "The harmful / irritant pictogram warns about:",
+  "a": "Skin or eye irritation, skin sensitization and respiratory irritation",
+  "wrong": [
+   "Gas stored under pressure",
+   "Harm to aquatic life",
+   "Explosion from heat or friction"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "Which are examples of fuels?",
+  "a": "LPG, candle wax and charcoal",
+  "wrong": [
+   "Water, sand and salt",
+   "Oxygen and nitrogen",
+   "Glass, iron and copper"
+  ],
+  "src": "Combustion Reaction"
+ },
+ {
+  "q": "Over-nutrition can lead to:",
+  "a": "Obesity, type 2 diabetes and cardiovascular diseases",
+  "wrong": [
+   "Muscle wasting and stunted growth",
+   "Faster wound healing",
+   "Stronger immune system only"
+  ],
+  "src": "Metabolism"
+ },
+ {
+  "q": "Complete combustion (enough oxygen) produces:",
+  "a": "Carbon dioxide, water vapor, heat and light",
+  "wrong": [
+   "Carbon monoxide and soot",
+   "Only smoke and ash",
+   "Oxygen and glucose"
+  ],
+  "src": "Combustion Reaction"
+ },
+ {
+  "q": "What does a pictogram tell you?",
+  "a": "What kind of hazard to look for; the rest of the label gives info for safe use",
+  "wrong": [
+   "Everything you need to know about the product",
+   "The product's price",
+   "That the product is safe to drink"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "If you see bubbles, color change, or heat, can you immediately conclude a chemical reaction happened?",
+  "a": "No, scientists do not rely on only one clue",
+  "wrong": [
+   "Yes, any one clue is proof",
+   "Yes, but only if there are bubbles",
+   "No, chemical reactions never show these clues"
+  ],
+  "src": "Intro to Chemical Reactions"
+ },
+ {
+  "q": "Passing electric current through water (2H₂O → 2H₂ + O₂) is called:",
+  "a": "Electrolytic decomposition",
+  "wrong": [
+   "Thermal decomposition",
+   "Photodecomposition",
+   "Combustion"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "Climate change is described as an ecological imbalance because:",
+  "a": "Respiration and burning produce more CO₂ than photosynthesis can absorb",
+  "wrong": [
+   "Plants produce too much oxygen",
+   "There is too much water",
+   "Photosynthesis absorbs all CO₂"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "Does every color change mean a chemical reaction happened?",
+  "a": "Not necessarily; scientists check more than one clue",
+  "wrong": [
+   "Yes, always",
+   "No, color change never shows a reaction",
+   "Only if the color turns black"
+  ],
+  "src": "Intro to Chemical Reactions"
+ },
+ {
+  "q": "Which list shows everyday chemical reactions?",
+  "a": "Digesting food, baking bread, burning gasoline",
+  "wrong": [
+   "Melting ice, tearing paper, boiling water",
+   "Cutting hair, folding clothes, breaking glass",
+   "Dissolving salt, freezing juice, chopping wood"
+  ],
+  "src": "Intro to Chemical Reactions"
+ },
+ {
+  "q": "A salt is an ionic compound formed when the ___ of an acid is replaced by another positive ion, such as a metal ion.",
+  "a": "Hydrogen ion",
+  "wrong": [
+   "Oxygen atom",
+   "Carbonate ion",
+   "Chloride ion"
+  ],
+  "src": "Acid-Metal and Acid-Carbonate Reactions"
+ },
+ {
+  "q": "A physical blend of two or more components, each keeping its own identity and properties, is a:",
+  "a": "Mixture",
+  "wrong": [
+   "Compound",
+   "Element",
+   "Chemical reaction"
+  ],
+  "src": "Introduction to Solutions"
+ },
+ {
+  "q": "Why must strong acids be handled carefully?",
+  "a": "They may be corrosive and damage skin or metals",
+  "wrong": [
+   "They are always explosive",
+   "They are compressed gases",
+   "They are harmless"
+  ],
+  "src": "Acid-Metal and Acid-Carbonate Reactions"
+ },
+ {
+  "q": "Why can high salt around plant roots harm the plant?",
+  "a": "It makes water less available for uptake, causing wilting and slower growth",
+  "wrong": [
+   "Salt instantly kills every plant",
+   "Salt adds too much oxygen",
+   "Salt makes leaves produce more glucose"
+  ],
+  "src": "Saltwater and Wastewater Effects"
+ },
+ {
+  "q": "The metabolic process that builds larger molecules from smaller ones and REQUIRES energy is:",
+  "a": "Anabolism",
+  "wrong": [
+   "Catabolism",
+   "Combustion",
+   "Decomposition"
+  ],
+  "src": "Metabolism"
+ },
+ {
+  "q": "Metabolism is:",
+  "a": "The sum of all chemical reactions occurring inside the cells of living organisms",
+  "wrong": [
+   "Only the process of losing weight",
+   "Only digestion in the stomach",
+   "A process that stops while sleeping"
+  ],
+  "src": "Metabolism"
+ },
+ {
+  "q": "Which metals react slowly or not at all with acids?",
+  "a": "Copper, silver, gold",
+  "wrong": [
+   "Magnesium, zinc, iron",
+   "Aluminum, zinc, magnesium",
+   "Iron, aluminum, zinc"
+  ],
+  "src": "Acid-Metal and Acid-Carbonate Reactions"
+ },
+ {
+  "q": "A drain cleaner's most likely hazard is that it may be:",
+  "a": "Corrosive",
+  "wrong": [
+   "Compressed gas",
+   "Explosive",
+   "Harmless"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "Electrolysis of water is used in:",
+  "a": "Producing hydrogen fuel and purifying metals",
+  "wrong": [
+   "Making cakes rise",
+   "Cleaning wounds",
+   "Producing cement"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "What is the general equation of an acid-metal reaction?",
+  "a": "Acid + Metal → Salt + Hydrogen gas",
+  "wrong": [
+   "Acid + Metal → Salt + Water + Carbon dioxide",
+   "Acid + Metal → Oxygen + Water",
+   "Acid + Metal → Metal oxide"
+  ],
+  "src": "Acid-Metal and Acid-Carbonate Reactions"
+ },
+ {
+  "q": "Carbon dioxide released from combustion contributes to:",
+  "a": "Global warming",
+  "wrong": [
+   "Ozone repair",
+   "Cooler temperatures",
+   "Cleaner air"
+  ],
+  "src": "Combustion Reaction"
+ },
+ {
+  "q": "Catabolism is called the destructive phase of metabolism because it:",
+  "a": "Breaks down molecules to provide fuel for life's activities",
+  "wrong": [
+   "Builds muscles",
+   "Stops growth",
+   "Destroys all cells"
+  ],
+  "src": "Metabolism"
+ },
+ {
+  "q": "Under-nutrition leads to muscle wasting and stunted growth due to:",
+  "a": "Excess catabolism",
+  "wrong": [
+   "Excess anabolism",
+   "Too much photosynthesis",
+   "Too much ATP"
+  ],
+  "src": "Metabolism"
+ },
+ {
+  "q": "\"Anabolism is like ___.\"",
+  "a": "Constructing a new building",
+  "wrong": [
+   "Demolishing an old house",
+   "Turning off an engine",
+   "Burning firewood"
+  ],
+  "src": "Metabolism"
+ },
+ {
+  "q": "An ecosystem consists of:",
+  "a": "Living organisms interacting with one another and their physical environment",
+  "wrong": [
+   "Only plants",
+   "Only water and soil",
+   "Only animals in a zoo"
+  ],
+  "src": "Saltwater and Wastewater Effects"
+ },
+ {
+  "q": "The white deposits found inside electric kettles are caused by:",
+  "a": "Chemical changes involving dissolved minerals in hard water",
+  "wrong": [
+   "Melted plastic",
+   "Sugar from coffee",
+   "Rust from the outside"
+  ],
+  "src": "Intro to Chemical Reactions"
+ },
+ {
+  "q": "Cellular respiration is classified as a ___ reaction that is ___.",
+  "a": "Decomposition; exothermic (releases energy)",
+  "wrong": [
+   "Synthesis; endothermic",
+   "Single replacement; endothermic",
+   "Synthesis; exothermic"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "Which is the most common solvent?",
+  "a": "Water",
+  "wrong": [
+   "Alcohol",
+   "Acetone",
+   "Vinegar"
+  ],
+  "src": "Introduction to Solutions"
+ },
+ {
+  "q": "Ocean pollution is:",
+  "a": "The buildup of harmful substances like plastic, chemicals and waste in the ocean",
+  "wrong": [
+   "Saltwater entering rivers",
+   "Rain falling on the sea",
+   "Fish laying eggs"
+  ],
+  "src": "Saltwater and Wastewater Effects"
+ },
+ {
+  "q": "Milk looks homogeneous but its particles are 1–100 nm in size. Milk is a:",
+  "a": "Colloid",
+  "wrong": [
+   "Suspension",
+   "Solution",
+   "Pure substance"
+  ],
+  "src": "Introduction to Solutions"
+ },
+ {
+  "q": "What does a plant do with excess glucose?",
+  "a": "Stores it as starch",
+  "wrong": [
+   "Releases it into the air",
+   "Turns it into oxygen",
+   "Sends it to the roots as water"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "Which pictogram would most likely appear on an alcohol-based product?",
+  "a": "Flammable (flame)",
+  "wrong": [
+   "Compressed gas",
+   "Environment hazard",
+   "Explosive"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "An alcohol-based product has a flame pictogram. Which situation is the MOST concerning?",
+  "a": "The bottle is placed beside an open flame",
+  "wrong": [
+   "The bottle is kept away from heat",
+   "The label is read before use",
+   "The product is in its original container"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "Amino acids combining inside ribosomes to form proteins is an example of:",
+  "a": "Anabolism",
+  "wrong": [
+   "Catabolism",
+   "Combustion",
+   "Decomposition"
+  ],
+  "src": "Metabolism"
+ },
+ {
+  "q": "Soft drinks are an example of which type of solution?",
+  "a": "Gas in liquid",
+  "wrong": [
+   "Solid in solid",
+   "Gas in gas",
+   "Liquid in solid"
+  ],
+  "src": "Introduction to Solutions"
+ },
+ {
+  "q": "The bubbles when hydrogen peroxide touches a wound are:",
+  "a": "Oxygen gas",
+  "wrong": [
+   "Carbon dioxide gas",
+   "Hydrogen gas",
+   "Water vapor"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "BaCl₂ + Na₂SO₄ → BaSO₄ + 2NaCl is what type of reaction?",
+  "a": "Double replacement",
+  "wrong": [
+   "Single replacement",
+   "Synthesis",
+   "Decomposition"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "The carbon cycle is best described as:",
+  "a": "A system of chemical reactions connected by photosynthesis and respiration",
+  "wrong": [
+   "A single chemical reaction",
+   "A process where carbon is destroyed",
+   "A process that happens only in oceans"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "When saline water enters an area that normally contains freshwater, it is called:",
+  "a": "Saltwater intrusion",
+  "wrong": [
+   "Eutrophication",
+   "Photodecomposition",
+   "Ocean pollution"
+  ],
+  "src": "Saltwater and Wastewater Effects"
+ },
+ {
+  "q": "Which type of reaction follows the pattern AB → A + B?",
+  "a": "Decomposition",
+  "wrong": [
+   "Synthesis",
+   "Combustion",
+   "Double replacement"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "Which acid is found in car batteries?",
+  "a": "Sulfuric acid",
+  "wrong": [
+   "Citric acid",
+   "Acetic acid",
+   "Carbonic acid"
+  ],
+  "src": "Acid-Metal and Acid-Carbonate Reactions"
+ },
+ {
+  "q": "New substances formed in a reaction are found on which side of the equation?",
+  "a": "Right side (products)",
+  "wrong": [
+   "Left side (reactants)",
+   "Above the arrow",
+   "Nowhere"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "Where does cellular respiration occur?",
+  "a": "Mitochondria",
+  "wrong": [
+   "Chloroplasts",
+   "Stomata",
+   "Cell wall"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "Which is NOT a characteristic of a solution?",
+  "a": "Particles settle at the bottom over time",
+  "wrong": [
+   "It is homogeneous",
+   "Particles are too small to see",
+   "It cannot be separated by ordinary filtration"
+  ],
+  "src": "Introduction to Solutions"
+ },
+ {
+  "q": "Which substances may be found in wastewater?",
+  "a": "Nutrients, organic matter, detergents and chemicals",
+  "wrong": [
+   "Only pure water",
+   "Only sand",
+   "Only oxygen"
+  ],
+  "src": "Saltwater and Wastewater Effects"
+ },
+ {
+  "q": "Which statement is correct?",
+  "a": "Every solution is a mixture, but not every mixture is a solution",
+  "wrong": [
+   "Every mixture is a solution",
+   "The solid is always the solute",
+   "The substance added first is always the solvent"
+  ],
+  "src": "Introduction to Solutions"
+ },
+ {
+  "q": "A simple way to remember: Solute = ___, Solvent = ___.",
+  "a": "Soluble (dissolves); Solves (does the dissolving)",
+  "wrong": [
+   "Solid; Liquid",
+   "Small; Large always",
+   "First added; Second added"
+  ],
+  "src": "Introduction to Solutions"
+ },
+ {
+  "q": "Why must chemical equations be balanced?",
+  "a": "Law of Conservation of Mass: mass is neither created nor destroyed",
+  "wrong": [
+   "To make the equation shorter",
+   "Because products are always heavier",
+   "To add new atoms to the reaction"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "What are the three parts of the fire triangle?",
+  "a": "Fuel, heat, oxygen",
+  "wrong": [
+   "Fuel, water, smoke",
+   "Heat, light, ash",
+   "Oxygen, carbon dioxide, water"
+  ],
+  "src": "Combustion Reaction"
+ },
+ {
+  "q": "Decomposition reactions are the opposite of:",
+  "a": "Synthesis reactions",
+  "wrong": [
+   "Combustion reactions",
+   "Single replacement reactions",
+   "Physical changes"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "Excess fertilizer causes algae growth; when algae die, decomposers use up oxygen. This can create:",
+  "a": "Low-oxygen \"dead zones\"",
+  "wrong": [
+   "More fish",
+   "Cleaner water",
+   "Saltwater intrusion"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "Which type of reaction follows the pattern A + B → AB?",
+  "a": "Synthesis",
+  "wrong": [
+   "Decomposition",
+   "Single replacement",
+   "Double replacement"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "Complete the equation: 6CO₂ + 6H₂O + ______ → C₆H₁₂O₆ + 6O₂",
+  "a": "Light energy",
+  "wrong": [
+   "ATP",
+   "6O₂",
+   "Heat from the soil"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "Untreated wastewater with harmful substances mainly causes:",
+  "a": "Water quality degradation affecting aquatic organisms and communities",
+  "wrong": [
+   "Increased salinity only",
+   "More freshwater",
+   "Better plant growth"
+  ],
+  "src": "Saltwater and Wastewater Effects"
+ },
+ {
+  "q": "During a chemical reaction, what happens to atoms?",
+  "a": "They are rearranged to form new substances",
+  "wrong": [
+   "They are created",
+   "They are destroyed",
+   "They turn into energy"
+  ],
+  "src": "Intro to Chemical Reactions"
+ },
+ {
+  "q": "How are photosynthesis and cellular respiration related?",
+  "a": "They are complementary: the products of one are the reactants of the other",
+  "wrong": [
+   "They both occur only in animals",
+   "They both release carbon dioxide only",
+   "They are unrelated processes"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "The compressed gas pictogram is used for products that are:",
+  "a": "Stored under pressure",
+  "wrong": [
+   "Highly toxic when swallowed",
+   "Harmful to aquatic life",
+   "Corrosive to metals"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "Which pictogram warns about products high in oxygen that promote the burning of flammable substances?",
+  "a": "Oxidizing",
+  "wrong": [
+   "Flammable",
+   "Explosive",
+   "Corrosive"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "During photosynthesis, where does the released oxygen come from?",
+  "a": "Water is split to release oxygen",
+  "wrong": [
+   "Glucose breaks down",
+   "Carbon dioxide is burned",
+   "Chlorophyll melts"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "The substance that dissolves (usually in smaller amount) is the:",
+  "a": "Solute",
+  "wrong": [
+   "Solvent",
+   "Solution",
+   "Precipitate"
+  ],
+  "src": "Introduction to Solutions"
+ },
+ {
+  "q": "Which acid is found in the human stomach?",
+  "a": "Hydrochloric acid",
+  "wrong": [
+   "Acetic acid",
+   "Sulfuric acid",
+   "Citric acid"
+  ],
+  "src": "Acid-Metal and Acid-Carbonate Reactions"
+ },
+ {
+  "q": "Products that can harm organs and reproduction and may be carcinogenic carry which pictogram?",
+  "a": "Long-term health hazard",
+  "wrong": [
+   "Harmful / irritant",
+   "Environment hazard",
+   "Compressed gas"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "Which metals commonly react with acids?",
+  "a": "Magnesium, zinc, iron and aluminum",
+  "wrong": [
+   "Gold, silver and copper",
+   "Only gold",
+   "None of them"
+  ],
+  "src": "Acid-Metal and Acid-Carbonate Reactions"
+ },
+ {
+  "q": "How many pictograms does the GHS use to communicate hazards?",
+  "a": "Nine",
+  "wrong": [
+   "Five",
+   "Seven",
+   "Twelve"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "Photosynthesis is classified as a ___ reaction that is ___.",
+  "a": "Synthesis; endothermic (absorbs energy)",
+  "wrong": [
+   "Decomposition; exothermic",
+   "Combustion; exothermic",
+   "Double replacement; endothermic"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "Heating limestone (CaCO₃ → CaO + CO₂) is an example of:",
+  "a": "Thermal decomposition",
+  "wrong": [
+   "Electrolytic decomposition",
+   "Photodecomposition",
+   "Synthesis"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "An exothermic process:",
+  "a": "Releases energy, usually as heat, light or sound",
+  "wrong": [
+   "Absorbs energy from surroundings",
+   "Needs sunlight",
+   "Only happens in plants"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "Besides water, which liquids can also act as solvents?",
+  "a": "Alcohol and acetone",
+  "wrong": [
+   "Sand and salt",
+   "Ice and steam",
+   "Oil and iron"
+  ],
+  "src": "Introduction to Solutions"
+ },
+ {
+  "q": "Can metabolism happen while you are sleeping?",
+  "a": "Yes, the body keeps using energy to keep the heart and lungs working",
+  "wrong": [
+   "No, it stops completely",
+   "Only if you ate before sleeping",
+   "Only in children"
+  ],
+  "src": "Metabolism"
+ },
+ {
+  "q": "Which situation is a chemical reaction?",
+  "a": "A sliced apple turning brown",
+  "wrong": [
+   "Paper torn into small pieces",
+   "Ice cubes melting",
+   "A car hood getting hot under the sun"
+  ],
+  "src": "Intro to Chemical Reactions"
+ },
+ {
+  "q": "Steel and other alloys are examples of which type of solution?",
+  "a": "Solid in solid",
+  "wrong": [
+   "Solid in liquid",
+   "Gas in gas",
+   "Liquid in liquid"
+  ],
+  "src": "Introduction to Solutions"
+ },
+ {
+  "q": "Which statement about chemicals is correct?",
+  "a": "A chemical is not automatically dangerous, and not automatically safe",
+  "wrong": [
+   "All chemicals are dangerous",
+   "Household chemicals are always safe",
+   "Only liquids can be hazardous"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "In chemistry, an acid is a substance that releases ___ when dissolved in water.",
+  "a": "Hydrogen ions (H⁺)",
+  "wrong": [
+   "Hydroxide ions (OH⁻)",
+   "Oxygen gas",
+   "Carbonate ions"
+  ],
+  "src": "Acid-Metal and Acid-Carbonate Reactions"
+ },
+ {
+  "q": "Incomplete combustion happens when there is insufficient oxygen and produces:",
+  "a": "Carbon monoxide, soot, water vapor and less energy",
+  "wrong": [
+   "Only carbon dioxide and more energy",
+   "Oxygen and hydrogen",
+   "Salt and water"
+  ],
+  "src": "Combustion Reaction"
+ },
+ {
+  "q": "Wastewater can come from:",
+  "a": "Households, agriculture, businesses and industries",
+  "wrong": [
+   "Only rain",
+   "Only the ocean",
+   "Only glaciers"
+  ],
+  "src": "Saltwater and Wastewater Effects"
+ },
+ {
+  "q": "The environment hazard pictogram warns about possible harm to:",
+  "a": "Aquatic organisms or aquatic ecosystems",
+  "wrong": [
+   "Metal containers",
+   "Electrical outlets",
+   "Only the user's skin"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "Do plants perform metabolism?",
+  "a": "Yes, photosynthesis is an anabolic process in plants",
+  "wrong": [
+   "No, plants only make food",
+   "Only at night",
+   "No, only animals do"
+  ],
+  "src": "Metabolism"
+ },
+ {
+  "q": "A black car hood gets very hot after hours under the sun. This is:",
+  "a": "A physical change, no new substance is formed",
+  "wrong": [
+   "A chemical reaction",
+   "Combustion",
+   "Decomposition"
+  ],
+  "src": "Intro to Chemical Reactions"
+ },
+ {
+  "q": "A mixture whose composition is NOT uniform throughout is:",
+  "a": "Heterogeneous",
+  "wrong": [
+   "Homogeneous",
+   "A solution",
+   "A pure substance"
+  ],
+  "src": "Introduction to Solutions"
+ },
+ {
+  "q": "The effect of salt on plants depends on:",
+  "a": "Salt concentration, plant species, exposure time, soil and tolerance",
+  "wrong": [
+   "Only the color of the plant",
+   "Nothing, salt always kills instantly",
+   "Only the time of day"
+  ],
+  "src": "Saltwater and Wastewater Effects"
+ },
+ {
+  "q": "Silver chloride breaking down in sunlight (2AgCl → 2Ag + Cl₂) is an example of:",
+  "a": "Photodecomposition",
+  "wrong": [
+   "Thermal decomposition",
+   "Electrolytic decomposition",
+   "Single replacement"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "Vehicle engines with poor air supply are an example of:",
+  "a": "Incomplete combustion",
+  "wrong": [
+   "Complete combustion",
+   "Photosynthesis",
+   "Electrolysis"
+  ],
+  "src": "Combustion Reaction"
+ },
+ {
+  "q": "In salt water, what is the solvent?",
+  "a": "Water",
+  "wrong": [
+   "Salt",
+   "Air",
+   "Sugar"
+  ],
+  "src": "Introduction to Solutions"
+ },
+ {
+  "q": "The metabolic process that breaks large molecules into smaller ones and RELEASES energy is:",
+  "a": "Catabolism",
+  "wrong": [
+   "Anabolism",
+   "Photosynthesis",
+   "Synthesis"
+  ],
+  "src": "Metabolism"
+ },
+ {
+  "q": "2Na + Cl₂ → 2NaCl is what type of reaction?",
+  "a": "Synthesis",
+  "wrong": [
+   "Decomposition",
+   "Single replacement",
+   "Combustion"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "Saltwater entering freshwater mainly causes:",
+  "a": "Increased salinity that affects freshwater plants and animals",
+  "wrong": [
+   "Nutrient enrichment",
+   "More dissolved oxygen",
+   "Lower salt concentration"
+  ],
+  "src": "Saltwater and Wastewater Effects"
+ },
+ {
+  "q": "A student says: \"I already know this cleaning product, so I don't need to read its label.\" Is this safe?",
+  "a": "No, familiarity does not remove a product's hazards; the label gives hazards, precautions and proper use",
+  "wrong": [
+   "Yes, if the product was used before it is always safe",
+   "Yes, the pictogram alone is enough information",
+   "No, because all cleaning products explode"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "Combustion is a reaction in which a fuel reacts rapidly with ___, releasing heat and usually light.",
+  "a": "Oxygen",
+  "wrong": [
+   "Nitrogen",
+   "Carbon dioxide",
+   "Water"
+  ],
+  "src": "Combustion Reaction"
+ },
+ {
+  "q": "Fuel + O₂ → CO₂ + H₂O is the pattern of which reaction?",
+  "a": "Combustion",
+  "wrong": [
+   "Decomposition",
+   "Synthesis",
+   "Double replacement"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "When baking soda is heated in the oven, which gas makes cakes and bread rise?",
+  "a": "Carbon dioxide",
+  "wrong": [
+   "Oxygen",
+   "Hydrogen",
+   "Nitrogen"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "Fireflies produce light through a chemical reaction called:",
+  "a": "Bioluminescence",
+  "wrong": [
+   "Photosynthesis",
+   "Combustion",
+   "Photodecomposition"
+  ],
+  "src": "Intro to Chemical Reactions"
+ },
+ {
+  "q": "The green pigment that absorbs sunlight to power photosynthesis is:",
+  "a": "Chlorophyll",
+  "wrong": [
+   "Chloroplast",
+   "Glucose",
+   "Stomata"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "Which is TRUE about a decomposition reaction?",
+  "a": "There is only one reactant, and it is always a compound",
+  "wrong": [
+   "There are always two reactants",
+   "The reactant is always an element",
+   "Only one product is formed"
+  ],
+  "src": "Types of Reactions & Decomposition"
+ },
+ {
+  "q": "What is the difference between hazard and risk?",
+  "a": "Hazard is the potential to cause harm; risk is the possibility the hazard actually causes harm under certain exposure",
+  "wrong": [
+   "They mean exactly the same thing",
+   "Risk is the potential to cause harm; hazard is the actual harm",
+   "Hazard applies only to gases; risk applies only to liquids"
+  ],
+  "src": "Chemical Hazards and Safety Symbols"
+ },
+ {
+  "q": "Complete the equation: C₆H₁₂O₆ + ______ → 6CO₂ + 6H₂O + ATP",
+  "a": "6O₂",
+  "wrong": [
+   "6CO₂",
+   "Light energy",
+   "6H₂O"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "Which is a correct fire safety practice?",
+  "a": "Turn off LPG tanks after use",
+  "wrong": [
+   "Leave candles burning while asleep",
+   "Overload electrical outlets",
+   "Keep flammable materials near the stove"
+  ],
+  "src": "Combustion Reaction"
+ },
+ {
+  "q": "Which is an example of anabolism?",
+  "a": "Healing a wound by producing new skin cells",
+  "wrong": [
+   "Digesting food into simple nutrients",
+   "Breaking down glucose in cellular respiration",
+   "Breaking down stored fats"
+  ],
+  "src": "Metabolism"
+ },
+ {
+  "q": "How does a plant get water for photosynthesis?",
+  "a": "Absorbed from the soil by the roots",
+  "wrong": [
+   "Through the stomata from the air",
+   "From sunlight",
+   "From glucose"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "Which is an example of a freshwater environment?",
+  "a": "Lakes",
+  "wrong": [
+   "Oceans",
+   "Seas",
+   "Salt marshes"
+  ],
+  "src": "Saltwater and Wastewater Effects"
+ },
+ {
+  "q": "Can a cooked egg be changed back into a raw egg?",
+  "a": "No, cooking is a chemical change that is difficult or impossible to reverse",
+  "wrong": [
+   "Yes, by cooling it in the fridge",
+   "Yes, by adding water",
+   "No, because it is a physical change"
+  ],
+  "src": "Intro to Chemical Reactions"
+ },
+ {
+  "q": "Which heterogeneous mixture has the largest particles that settle out over time?",
+  "a": "Suspension",
+  "wrong": [
+   "Colloid",
+   "Solution",
+   "Alloy"
+  ],
+  "src": "Introduction to Solutions"
+ },
+ {
+  "q": "If you haven't eaten for several hours, where does your body get energy?",
+  "a": "By breaking down stored glycogen and fats",
+  "wrong": [
+   "Metabolism stops until you eat",
+   "From sweating",
+   "From drinking cold water"
+  ],
+  "src": "Metabolism"
+ },
+ {
+  "q": "What is the solvent in rubbing alcohol solution?",
+  "a": "Alcohol",
+  "wrong": [
+   "Water",
+   "Salt",
+   "Vinegar"
+  ],
+  "src": "Introduction to Solutions"
+ },
+ {
+  "q": "Which acid is found in vinegar?",
+  "a": "Acetic acid",
+  "wrong": [
+   "Citric acid",
+   "Carbonic acid",
+   "Sulfuric acid"
+  ],
+  "src": "Acid-Metal and Acid-Carbonate Reactions"
+ },
+ {
+  "q": "What is the general equation of an acid-carbonate reaction?",
+  "a": "Acid + Carbonate → Salt + Water + Carbon dioxide",
+  "wrong": [
+   "Acid + Carbonate → Salt + Hydrogen gas",
+   "Acid + Carbonate → Oxygen + Glucose",
+   "Acid + Carbonate → Metal + Water"
+  ],
+  "src": "Acid-Metal and Acid-Carbonate Reactions"
+ },
+ {
+  "q": "The minimum temperature needed for a fuel to ignite is called its:",
+  "a": "Ignition temperature",
+  "wrong": [
+   "Boiling point",
+   "Melting point",
+   "Freezing point"
+  ],
+  "src": "Combustion Reaction"
+ },
+ {
+  "q": "Water that has been used and contains substances from human activities is:",
+  "a": "Wastewater",
+  "wrong": [
+   "Freshwater",
+   "Saltwater",
+   "Groundwater"
+  ],
+  "src": "Saltwater and Wastewater Effects"
+ },
+ {
+  "q": "What are the two main kinds of mixtures?",
+  "a": "Heterogeneous and homogeneous",
+  "wrong": [
+   "Solute and solvent",
+   "Colloid and suspension only",
+   "Element and compound"
+  ],
+  "src": "Introduction to Solutions"
+ },
+ {
+  "q": "Which describes a chemical change compared to a physical change?",
+  "a": "A new substance is formed and it is usually difficult or impossible to reverse",
+  "wrong": [
+   "Only the shape or state changes",
+   "No new substance is formed",
+   "It is usually easily reversible"
+  ],
+  "src": "Intro to Chemical Reactions"
+ },
+ {
+  "q": "Excess nutrients from wastewater causing too much algal growth and changes in oxygen is called:",
+  "a": "Eutrophication",
+  "wrong": [
+   "Saltwater intrusion",
+   "Salinity",
+   "Combustion"
+  ],
+  "src": "Saltwater and Wastewater Effects"
+ },
+ {
+  "q": "Citric acid is commonly found in:",
+  "a": "Lemon, calamansi and oranges",
+  "wrong": [
+   "Car batteries",
+   "Soft drinks",
+   "Vinegar"
+  ],
+  "src": "Acid-Metal and Acid-Carbonate Reactions"
+ },
+ {
+  "q": "What role does respiration play in ecological balance?",
+  "a": "Returns carbon dioxide to the atmosphere and releases energy",
+  "wrong": [
+   "Removes carbon dioxide from the air",
+   "Produces glucose",
+   "Produces oxygen"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "What is known as the energy currency of the cell?",
+  "a": "ATP",
+  "wrong": [
+   "Glucose",
+   "Oxygen",
+   "Chlorophyll"
+  ],
+  "src": "Metabolism"
+ },
+ {
+  "q": "Which are solutions to carbon imbalance?",
+  "a": "Reforestation and renewable energy",
+  "wrong": [
+   "Cutting more trees",
+   "Burning more fossil fuels",
+   "Removing green spaces"
+  ],
+  "src": "Photosynthesis and Cellular Respiration"
+ },
+ {
+  "q": "About how much of the body's energy does the brain use?",
+  "a": "Around 20%",
+  "wrong": [
+   "Around 2%",
+   "Around 50%",
+   "Around 90%"
+  ],
+  "src": "Metabolism"
+ }
+] };
+const $ = id => document.getElementById(id);
+const SCREENS = ['nameScreen', 'board', 'start', 'fil2Setup', 'gensciSetup', 'quiz', 'result'];
+
+// ---------- STORAGE (per device: name, language, sound, local scores) ----------
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+let player = store.get('rq_name', '');
+let soundOn = store.get('rq_sound', true);
+let memBoard = null;
+function getLocalBoard() { return memBoard || store.get('rq_board', []); }
+function saveLocalBoard(b) { memBoard = null; store.set('rq_board', b); if (JSON.stringify(store.get('rq_board', null)) !== JSON.stringify(b)) memBoard = b; }
+
+// ---------- LANGUAGES ----------
+const LANGS = { en: 'English', fil: 'Filipino', ceb: 'Cebuano' };
+const I18N = {
+  en: {
+    nameSub: 'Enter your name before you start', namePh: 'Name', cont: 'Continue',
+    hi: 'Hi,', change: 'change', boardLink: 'Leaderboard', soundOn: 'Sound: On', soundOff: 'Sound: Off',
+    pickSubject: 'Choose a subject', lessonNext: 'Pick a lesson on the next screen', nQ: '{n} questions', allN: 'All ({n})',
+    start: 'Start', back: 'Back', pickLesson: 'Choose a lesson', allLessons: 'All lessons', all: 'All',
+    hint: 'Press 1–4 to answer, Enter for the next question.', correctCount: '{n} correct', pts: '{n} pts',
+    next: 'Next', seeScore: 'See score', right: 'Correct! +{n}', streak: '{n} in a row 🔥',
+    wrong: 'Wrong. Correct answer: {a}', lessonLbl: 'Lesson: {s}', score: 'Score',
+    again: 'Play again (new shuffle)', retry: 'Retry missed questions', changeSubj: 'Change subject', missedTitle: 'Missed questions',
+    msgHigh: 'Excellent!', msgMid: 'Good job, review a little more.', msgLow: 'Go back to the slides and try again.',
+    ptsLine: '{name} · {n} points', lbTitle: 'Leaderboard · {k} (you are #{r})', boardSub: 'Top scores',
+    thName: 'Name', thLesson: 'Lesson', thCorrect: 'Correct', thPts: 'Points', empty: 'No scores yet. Be the first!',
+    stLive: 'Shared leaderboard, updates live.', stLocal: 'Scores on this device only. Open the shared link while signed in to Claude to join the shared board.',
+    stReadonly: 'The shared board is read-only for your account. Your score is saved on this device.'
+  },
+  fil: {
+    nameSub: 'Ilagay ang pangalan mo bago magsimula', namePh: 'Pangalan', cont: 'Tuloy',
+    hi: 'Hi,', change: 'palitan', boardLink: 'Leaderboard', soundOn: 'Tunog: On', soundOff: 'Tunog: Off',
+    pickSubject: 'Pumili ng subject', lessonNext: 'Pumili ng lesson sa susunod na screen', nQ: '{n} tanong', allN: 'Lahat ({n})',
+    start: 'Simulan', back: 'Bumalik', pickLesson: 'Pumili ng lesson', allLessons: 'Lahat ng lesson', all: 'Lahat',
+    hint: 'Pindutin ang 1–4 para pumili, Enter para sa susunod.', correctCount: '{n} tama', pts: '{n} pts',
+    next: 'Susunod', seeScore: 'Tingnan ang score', right: 'Tama! +{n}', streak: '{n} sunod-sunod 🔥',
+    wrong: 'Mali. Tamang sagot: {a}', lessonLbl: 'Lesson: {s}', score: 'Score',
+    again: 'Ulitin (bagong shuffle)', retry: 'Ulitin ang mga mali', changeSubj: 'Palitan ang subject', missedTitle: 'Mga mali',
+    msgHigh: 'Napakahusay!', msgMid: 'Magaling, konting review pa.', msgLow: 'Balikan ang mga slide at subukan ulit.',
+    ptsLine: '{name} · {n} puntos', lbTitle: 'Leaderboard · {k} (ika-{r} ka)', boardSub: 'Pinakamataas na puntos',
+    thName: 'Pangalan', thLesson: 'Lesson', thCorrect: 'Tama', thPts: 'Puntos', empty: 'Wala pang score. Ikaw ang mauuna!',
+    stLive: 'Shared na leaderboard, live ang update.', stLocal: 'Sa device na ito lang naka-save ang mga score. Buksan ang shared link habang naka-sign in sa Claude para makasali sa shared board.',
+    stReadonly: 'Read-only ang shared board para sa account mo. Nai-save ang score mo sa device na ito.'
+  },
+  ceb: {
+    nameSub: 'Ibutang ang imong ngalan sa dili pa magsugod', namePh: 'Ngalan', cont: 'Padayon',
+    hi: 'Hi,', change: 'usba', boardLink: 'Leaderboard', soundOn: 'Tunog: On', soundOff: 'Tunog: Off',
+    pickSubject: 'Pagpili ug subject', lessonNext: 'Pagpili ug leksyon sa sunod nga screen', nQ: '{n} ka pangutana', allN: 'Tanan ({n})',
+    start: 'Sugdi', back: 'Balik', pickLesson: 'Pagpili ug leksyon', allLessons: 'Tanang leksyon', all: 'Tanan',
+    hint: 'Pindota ang 1–4 aron mopili, Enter para sa sunod.', correctCount: '{n} sakto', pts: '{n} pts',
+    next: 'Sunod', seeScore: 'Tan-awa ang score', right: 'Sakto! +{n}', streak: '{n} sunod-sunod 🔥',
+    wrong: 'Sayop. Tama nga tubag: {a}', lessonLbl: 'Leksyon: {s}', score: 'Score',
+    again: 'Usba pag-usab (bag-ong shuffle)', retry: 'Usba ang mga sayop', changeSubj: 'Usba ang subject', missedTitle: 'Mga sayop',
+    msgHigh: 'Maayo kaayo!', msgMid: 'Maayo, kinahanglan pa gamay nga review.', msgLow: 'Balika ang mga slide ug sulayi pag-usab.',
+    ptsLine: '{name} · {n} puntos', lbTitle: 'Leaderboard · {k} (ika-{r} ka)', boardSub: 'Pinakataas nga puntos',
+    thName: 'Ngalan', thLesson: 'Leksyon', thCorrect: 'Sakto', thPts: 'Puntos', empty: 'Wala pay score. Ikaw ang una!',
+    stLive: 'Gishare nga leaderboard, live ang update.', stLocal: 'Niini ra nga device gi-save ang mga score. Ablihi ang shared link samtang naka-sign in sa Claude aron makasalmot sa shared board.',
+    stReadonly: 'Read-only ang shared board sa imong account. Ang imong score gi-save niini nga device.'
+  }
+};
+function guessLang() {
+  const n = (navigator.language || 'en').toLowerCase();
+  return n.startsWith('fil') || n.startsWith('tl') ? 'fil' : n.startsWith('ceb') ? 'ceb' : 'en';
+}
+let lang = store.get('rq_lang', null);
+if (!I18N[lang]) lang = guessLang();
+function t(k, v) {
+  let s = (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k;
+  v = v || {};
+  for (const x in v) s = s.split('{' + x + '}').join(v[x]);
+  return s;
+}
+function fillCounts() {
+  document.querySelectorAll('.countSel').forEach(sel => {
+    const cur = sel.value || (sel.id === 'countGensci' ? 'all' : '20');
+    const total = sel.id === 'countGensci' ? null : BANKS.FIL2.length;
+    sel.innerHTML = '';
+    [['10', t('nQ', { n: 10 })], ['20', t('nQ', { n: 20 })], ['all', total ? t('allN', { n: total }) : t('all')]]
+      .forEach(([v, l]) => sel.add(new Option(l, v)));
+    sel.value = cur;
+  });
+}
+function applyLang() {
+  document.documentElement.lang = lang === 'fil' ? 'fil' : lang === 'ceb' ? 'ceb' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => el.placeholder = t(el.dataset.i18nPh));
+  document.querySelectorAll('.langSel').forEach(sel => {
+    if (!sel.options.length) Object.keys(LANGS).forEach(k => sel.add(new Option(LANGS[k], k)));
+    sel.value = lang;
+  });
+  $('fil2Desc').textContent = 'Abstrak at Mga Anyo ng Akademikong Sulatin · ' + t('nQ', { n: BANKS.FIL2.length });
+  $('gensciDesc').textContent = t('lessonNext') + ' · ' + t('nQ', { n: BANKS.GENSCI.length });
+  fillCounts();
+  refreshSoundLabels();
+  if (visible('gensciSetup')) buildLessonList(lesson);
+  if (visible('board')) showBoard(currentTab);
+  if (visible('quiz')) { $('pos').textContent = (idx + 1) + ' / ' + set.length; $('tally').textContent = t('correctCount', { n: score }); $('points').textContent = t('pts', { n: points }); $('hiName').textContent = player; }
+  if (visible('result')) finishText();
+}
+function setLang(l) { lang = l; store.set('rq_lang', l); applyLang(); sfx.click(); }
+
+// ---------- SOUND EFFECTS (Web Audio, no files) ----------
+let ctx = null;
+function tone(freq, start, dur, type, vol) {
+  if (!soundOn) return;
+  try {
+    ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+    const tt = ctx.currentTime + start;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(freq, tt);
+    g.gain.setValueAtTime(0.0001, tt);
+    g.gain.exponentialRampToValueAtTime(vol || 0.18, tt + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, tt + dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(tt); o.stop(tt + dur + 0.05);
+  } catch (e) {}
+}
+const sfx = {
+  click()   { tone(660, 0, 0.08, 'triangle', 0.08); },
+  correct() { tone(660, 0, 0.12, 'triangle'); tone(880, 0.1, 0.12, 'triangle'); tone(1320, 0.2, 0.25, 'triangle'); },
+  wrong()   { tone(220, 0, 0.18, 'sawtooth', 0.12); tone(160, 0.16, 0.3, 'sawtooth', 0.12); },
+  finish()  { [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.13, 0.3, 'triangle')); },
+  low()     { [392, 330, 262].forEach((f, i) => tone(f, i * 0.16, 0.3, 'triangle', 0.14)); }
+};
+function refreshSoundLabels() { document.querySelectorAll('.soundToggle').forEach(b => b.textContent = t(soundOn ? 'soundOn' : 'soundOff')); }
+
+// ---------- STATE ----------
+const TIME_LIMIT = 20;
+let points = 0, qStart = 0, streak = 0, currentTab = 'FIL2', lastEntry = null;
+let subject = null, lesson = null;
+let set = [], idx = 0, score = 0, answered = false, wrongs = [];
+
+function show(id) {
+  SCREENS.forEach(s => $(s).classList.toggle('hidden', s !== id));
+  window.scrollTo({ top: 0 });
+  if (id === 'nameScreen') { $('nameInput').value = player; $('nameGo').disabled = !player.trim(); setTimeout(() => $('nameInput').focus(), 50); }
+  if (id === 'start') $('hiName').textContent = player;
+  if (id === 'gensciSetup') buildLessonList(null);
+}
+function visible(id) { return !$(id).classList.contains('hidden'); }
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ---------- SHARED LEADERBOARD ----------
+// Backend 1: Firebase Realtime Database (REST) - para sa GitHub Pages / kahit anong website.
+// Backend 2: Claude artifact "db" - kapag nakabukas sa loob ng Claude.
+// Backend 3: localStorage - sa device lang.
+const FB_URL = "";
+let db = null, sharedRows = [], shareState = 'local';   // local | live | readonly
+async function fbPull() {
+  try {
+    const r = await fetch(FB_URL + '/scores.json');
+    if (!r.ok) throw new Error(r.status);
+    const o = (await r.json()) || {};
+    sharedRows = Object.keys(o).map(k => Object.assign({}, o[k], { id: k }));
+    if (shareState === 'local') shareState = 'live';
+  } catch (e) { if (!sharedRows.length) shareState = 'local'; }
+  refreshBoards();
+}
+async function initShared() {
+  if (FB_URL) {
+    fbPull();
+    setInterval(fbPull, 10000);
+    return;
+  }
+  try {
+    const d = await (window.claude && window.claude.use ? window.claude.use('db') : null);
+    if (!d) return;
+    db = d;
+    db.collection('scores').orderBy('points', 'desc').limit(300).onSnapshot(
+      snap => {
+        sharedRows = snap.docs.map(x => Object.assign({}, x.data(), { id: x.id }));
+        if (shareState === 'local') shareState = 'live';
+        refreshBoards();
+      },
+      () => { shareState = 'local'; refreshBoards(); }
+    );
+  } catch (e) {}
+}
+function allRows() {
+  const seen = new Map();
+  sharedRows.concat(getLocalBoard()).forEach(r => { if (r && r.id && !seen.has(r.id)) seen.set(r.id, r); });
+  return Array.from(seen.values());
+}
+function statusText() { return t(shareState === 'live' ? 'stLive' : shareState === 'readonly' ? 'stReadonly' : 'stLocal'); }
+function refreshBoards() {
+  $('statusBoard').textContent = statusText();
+  $('statusResult').textContent = statusText();
+  if (visible('board')) showBoard(currentTab);
+  if (visible('result') && lastEntry) renderResultBoard();
+}
+
+// ---------- LEADERBOARD VIEW ----------
+const esc = x => String(x).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function boardKey(e) { return e.subject + (e.lesson && e.lesson !== 'all' ? ' · ' + e.lesson : ''); }
+function renderTable(rows, highlightId, showLesson) {
+  if (!rows.length) return '<p class="empty">' + esc(t('empty')) + '</p>';
+  let h = '<table><tr><th>#</th><th>' + esc(t('thName')) + '</th>' + (showLesson ? '<th>' + esc(t('thLesson')) + '</th>' : '') +
+          '<th class="num">' + esc(t('thCorrect')) + '</th><th class="num">' + esc(t('thPts')) + '</th></tr>';
+  rows.forEach((r, i) => {
+    const medal = ['🥇', '🥈', '🥉'][i] || (i + 1);
+    h += '<tr' + (r.id === highlightId ? ' class="me"' : '') + '><td>' + medal + '</td><td>' + esc(r.name) + '</td>' +
+      (showLesson ? '<td>' + esc(r.lesson === 'all' ? t('all') : r.lesson) + '</td>' : '') +
+      '<td class="num">' + esc(r.correct) + '/' + esc(r.total) + '</td><td class="num">' + esc(r.points) + '</td></tr>';
+  });
+  return h + '</table>';
+}
+function showBoard(tab) {
+  currentTab = tab;
+  document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('ghost', b.dataset.tab !== tab));
+  const rows = allRows().filter(e => e.subject === tab).sort((a, b) => b.points - a.points).slice(0, 15);
+  $('boardTable').innerHTML = renderTable(rows, null, tab === 'GENSCI');
+  $('statusBoard').textContent = statusText();
+}
+function renderResultBoard() {
+  const same = allRows().filter(e => boardKey(e) === boardKey(lastEntry)).sort((a, b) => b.points - a.points);
+  const rank = same.findIndex(e => e.id === lastEntry.id) + 1;
+  $('lbTitle').textContent = t('lbTitle', { k: boardKey(lastEntry), r: rank });
+  const top = same.slice(0, 10);
+  if (rank > 10) top.push(lastEntry);
+  $('resultBoard').innerHTML = renderTable(top, lastEntry.id, false);
+  $('statusResult').textContent = statusText();
+}
+
+// ---------- BRANCHING ----------
+function chooseSubject(key) {
+  subject = key;
+  if (key === 'FIL2') { lesson = 'all'; show('fil2Setup'); }
+  else { show('gensciSetup'); }
+}
+function buildLessonList(selected) {
+  lesson = selected;
+  $('beginGensci').disabled = !selected;
+  const counts = {};
+  BANKS.GENSCI.forEach(q => counts[q.src] = (counts[q.src] || 0) + 1);
+  const items = [['all', t('allLessons'), BANKS.GENSCI.length]]
+    .concat(Object.keys(counts).sort().map(k => [k, k, counts[k]]));
+  const list = $('lessonList');
+  list.innerHTML = '';
+  items.forEach(([val, label, n], i) => {
+    const b = document.createElement('button');
+    b.className = 'choice' + (val === selected ? ' picked' : '');
+    const k = document.createElement('span'); k.className = 'key'; k.textContent = i === 0 ? '★' : i;
+    const tx = document.createElement('span');
+    const bl = document.createElement('b'); bl.textContent = label;
+    const sm = document.createElement('small'); sm.textContent = t('nQ', { n: n });
+    tx.append(bl, document.createElement('br'), sm);
+    b.append(k, tx);
+    b.onclick = () => {
+      lesson = val;
+      list.querySelectorAll('.choice').forEach(x => x.classList.toggle('picked', x === b));
+      $('beginGensci').disabled = false;
+    };
+    list.append(b);
+  });
+}
+function goHome() { subject = null; lesson = null; show('start'); }
+function setName() {
+  const n = $('nameInput').value.trim().slice(0, 20);
+  if (!n) return;
+  player = n; store.set('rq_name', n); sfx.click(); show('start');
+}
+
+// ---------- QUIZ ----------
+function startWith(questions) {
+  set = shuffle(questions).map(q => ({ ...q, choices: shuffle([q.a].concat(q.wrong)) }));
+  idx = 0; score = 0; wrongs = []; points = 0; streak = 0;
+  show('quiz');
+  render();
+}
+function startFresh() {
+  let pool = BANKS[subject];
+  if (lesson && lesson !== 'all') pool = pool.filter(q => q.src === lesson);
+  const pick = subject === 'GENSCI' ? $('countGensci').value : $('countFil2').value;
+  let qs = shuffle(pool);
+  if (pick !== 'all') qs = qs.slice(0, Number(pick));
+  startWith(qs);
+}
+function label() { return subject + (lesson && lesson !== 'all' ? ' · ' + lesson : ''); }
+
+function render() {
+  const q = set[idx];
+  answered = false;
+  $('subj').textContent = label();
+  $('pos').textContent = (idx + 1) + ' / ' + set.length;
+  $('tally').textContent = t('correctCount', { n: score });
+  $('points').textContent = t('pts', { n: points });
+  qStart = performance.now();
+  $('fill').style.width = (idx / set.length * 100) + '%';
+  $('qtext').textContent = q.q;
+  $('fb').className = 'feedback';
+  $('fb').innerHTML = '';
+  $('next').classList.add('hidden');
+  const box = $('choices');
+  box.innerHTML = '';
+  q.choices.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.className = 'choice';
+    const k = document.createElement('span'); k.className = 'key'; k.textContent = i + 1;
+    const tx = document.createElement('span'); tx.textContent = c;
+    b.append(k, tx);
+    b.onclick = () => answer(b, c);
+    box.append(b);
+  });
+}
+
+function answer(btn, choice) {
+  if (answered) return;
+  answered = true;
+  const q = set[idx];
+  const ok = choice === q.a;
+  let gained = 0;
+  if (ok) {
+    score++; streak++;
+    const secs = (performance.now() - qStart) / 1000;
+    const speed = Math.max(0, 1 - secs / TIME_LIMIT);
+    gained = 500 + Math.round(400 * speed) + Math.min(streak - 1, 5) * 20;
+    points += gained;
+    sfx.correct();
+  } else { wrongs.push(q); streak = 0; sfx.wrong(); }
+  $('choices').querySelectorAll('.choice').forEach(b => {
+    b.disabled = true;
+    const txt = b.lastChild.textContent;
+    if (txt === q.a) b.classList.add('right');
+    else if (b === btn) b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+  const fb = $('fb');
+  fb.className = 'feedback ' + (ok ? 'ok' : 'bad');
+  fb.textContent = ok ? t('right', { n: gained }) + (streak > 1 ? '  ·  ' + t('streak', { n: streak }) : '') : t('wrong', { a: q.a });
+  const src = document.createElement('div'); src.className = 'src'; src.textContent = t('lessonLbl', { s: q.src });
+  fb.append(src);
+  $('tally').textContent = t('correctCount', { n: score });
+  $('points').textContent = t('pts', { n: points });
+  $('fill').style.width = ((idx + 1) / set.length * 100) + '%';
+  $('next').textContent = t(idx + 1 < set.length ? 'next' : 'seeScore');
+  $('next').classList.remove('hidden');
+  $('next').focus();
+}
+function next() {
+  if (!answered) return;
+  idx++;
+  if (idx < set.length) render(); else finish();
+}
+
+function finishText() {
+  const pct = Math.round(score / set.length * 100);
+  $('scoreLabel').textContent = label() + ' · ' + t('score');
+  $('final').textContent = score + ' / ' + set.length;
+  $('msg').textContent = pct + '% — ' + t(pct >= 90 ? 'msgHigh' : pct >= 75 ? 'msgMid' : 'msgLow');
+  $('ptsLine').textContent = t('ptsLine', { name: player, n: points });
+  $('missedTitle').textContent = t('missedTitle');
+  if (lastEntry) renderResultBoard();
+}
+async function finish() {
+  const pct = Math.round(score / set.length * 100);
+  $('retryWrong').classList.toggle('hidden', wrongs.length === 0);
+  pct >= 75 ? sfx.finish() : sfx.low();
+  const entry = { id: Date.now() + '-' + Math.random().toString(36).slice(2, 7), name: player, subject: subject, lesson: lesson || 'all',
+                  points: points, correct: score, total: set.length, date: new Date().toISOString().slice(0, 10), ts: Date.now() };
+  lastEntry = entry;
+  const local = getLocalBoard(); local.push(entry); saveLocalBoard(local.slice(-300));
+  const m = $('missed');
+  m.innerHTML = '';
+  wrongs.forEach(q => {
+    const d = document.createElement('div');
+    d.textContent = q.q;
+    const s = document.createElement('span'); s.textContent = q.a + '  ·  ' + q.src;
+    d.append(s);
+    m.append(d);
+  });
+  $('missedTitle').classList.toggle('hidden', wrongs.length === 0);
+  finishText();
+  show('result');
+  if (FB_URL) {
+    try {
+      const r = await fetch(FB_URL + '/scores/' + encodeURIComponent(entry.id) + '.json',
+        { method: 'PUT', body: JSON.stringify(entry) });
+      if (!r.ok) throw new Error(r.status);
+      sharedRows.push(entry); shareState = 'live';
+    } catch (e) { shareState = 'readonly'; }
+    refreshBoards();
+    fbPull();
+  } else if (db) {
+    try { await db.collection('scores').doc(entry.id).set(entry); if (shareState === 'local') shareState = 'live'; }
+    catch (e) { shareState = 'readonly'; }
+    refreshBoards();
+  }
+}
+
+// ---------- EVENTS ----------
+document.querySelectorAll('.subject').forEach(b => b.onclick = () => chooseSubject(b.dataset.key));
+document.querySelectorAll('.back').forEach(b => b.onclick = goHome);
+$('beginFil2').onclick = startFresh;
+$('beginGensci').onclick = () => { if (lesson) startFresh(); };
+$('next').onclick = next;
+$('again').onclick = startFresh;
+$('retryWrong').onclick = () => startWith(wrongs);
+$('home').onclick = goHome;
+$('nameInput').addEventListener('input', () => $('nameGo').disabled = !$('nameInput').value.trim());
+$('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); setName(); } });
+$('nameGo').onclick = setName;
+$('changeName').onclick = () => show('nameScreen');
+$('openBoard').onclick = () => { showBoard(currentTab); show('board'); };
+document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => showBoard(b.dataset.tab));
+document.querySelectorAll('.soundToggle').forEach(b => b.onclick = () => { soundOn = !soundOn; store.set('rq_sound', soundOn); refreshSoundLabels(); b.blur(); sfx.click(); });
+document.querySelectorAll('.langSel').forEach(s => s.onchange = () => setLang(s.value));
+document.querySelectorAll('.subject, .back').forEach(b => b.addEventListener('click', () => sfx.click()));
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (visible('start')) {
+    if (e.key === '1') chooseSubject('FIL2');
+    else if (e.key === '2') chooseSubject('GENSCI');
+  } else if (visible('fil2Setup')) {
+    if (e.key === 'Enter') { e.preventDefault(); startFresh(); }
+  } else if (visible('gensciSetup')) {
+    if (e.key === 'Enter' && lesson) { e.preventDefault(); startFresh(); }
+  } else if (visible('quiz')) {
+    if (!answered && /^[1-4]$/.test(e.key)) {
+      const b = $('choices').querySelectorAll('.choice')[Number(e.key) - 1];
+      if (b) b.click();
+    } else if (answered && e.key === 'Enter') {
+      e.preventDefault(); next();
+    }
+  }
+});
+
+applyLang();
+show(player ? 'start' : 'nameScreen');
+refreshBoards();
+initShared();
+</script>
+</body></html>
